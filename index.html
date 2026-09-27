@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Piksel Zombi Hayatta Kalma</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #1a1a1a;
+      font-family: 'Courier New', Courier, monospace;
+      touch-action: none;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+      touch-action: none;
+    }
+    canvas {
+      background-color: #2b5e2d;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: block;
+      cursor: crosshair;
+      touch-action: none;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* ANA MENÜ MODALI VE İÇİNDEKİ SİYAH DİKEY ÇİZGİ */
+    #main-menu-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 50%; /* Ekranın sol yarısı */
+      height: 100%;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      pointer-events: auto;
+    }
+
+    /* ORTADAKİ SİYAH DİKEY ÇİZGİ (Sadece Ana Menü Açıkken Görünür) */
+    #divider-line {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 3px;
+      height: 100%;
+      background: #000;
+      z-index: 11;
+      pointer-events: none;
+    }
+
+    /* UI Overlay */
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: none; /* Ana menüde gizli, oyunda açılır */
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px;
+      z-index: 5;
+    }
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      width: 100%;
+    }
+    .stats-panel {
+      background: rgba(0, 0, 0, 0.85);
+      border: 2px solid #fff;
+      padding: 8px 12px;
+      color: #fff;
+      font-weight: bold;
+      font-size: 13px;
+      border-radius: 6px;
+      box-shadow: 0 4px 0 #000;
+      pointer-events: auto;
+    }
+
+    .health-bar-container {
+      width: 140px;
+      height: 18px;
+      background: #444;
+      border: 2px solid #fff;
+      margin-top: 4px;
+      position: relative;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .health-bar-fill {
+      width: 100%;
+      height: 100%;
+      background: #4caf50;
+      transition: width 0.15s ease, background-color 0.2s ease;
+    }
+    .health-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #fff;
+      text-shadow: 1px 1px 2px #000;
+    }
+    .btn-ui {
+      pointer-events: auto;
+      background: #ffd700;
+      border: 2px solid #000;
+      padding: 10px 14px;
+      font-weight: bold;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #000;
+      border-radius: 6px;
+      font-size: 12px;
+      touch-action: manipulation;
+    }
+    .btn-ui:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #000;
+    }
+
+    /* Reload Bar */
+    #reload-bar-container {
+      position: absolute;
+      width: 100px;
+      height: 12px;
+      background: rgba(0,0,0,0.8);
+      border: 2px solid #fff;
+      display: none;
+      pointer-events: none;
+      border-radius: 3px;
+      overflow: hidden;
+      z-index: 6;
+    }
+    #reload-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: #ff9800;
+    }
+
+    /* General Modals */
+    .overlay-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.88);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      pointer-events: auto;
+      padding: 15px;
+    }
+
+    .main-menu-box {
+      background: rgba(15, 15, 15, 0.92);
+      border: 4px solid #ffd700;
+      padding: 35px 25px;
+      width: 82%;
+      max-width: 320px;
+      border-radius: 12px;
+      box-shadow: 0 10px 0 #000;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .btn-menu-large {
+      width: 100%;
+      padding: 16px 12px;
+      font-size: 18px;
+      font-weight: 900;
+      color: #000 !important; /* Buton üzerindeki yazılar siyah */
+      border: 3px solid #000;
+      cursor: pointer;
+      font-family: inherit;
+      border-radius: 8px;
+      box-shadow: 0 5px 0 #000;
+      letter-spacing: 1px;
+      transition: transform 0.1s;
+    }
+    .btn-menu-large:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #000;
+    }
+
+    .modal-box {
+      background: #222;
+      border: 3px solid #fff;
+      padding: 20px;
+      width: 100%;
+      max-width: 440px;
+      max-height: 90vh;
+      overflow-y: auto;
+      color: #fff;
+      text-align: center;
+      border-radius: 8px;
+      box-shadow: 0 8px 0 #000;
+    }
+    .modal-title {
+      font-size: 22px;
+      color: #ffd700;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-shadow: 2px 2px #000;
+      text-align: center;
+      font-weight: bold;
+    }
+    .shop-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .shop-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #333;
+      padding: 8px 10px;
+      border: 2px solid #555;
+      border-radius: 6px;
+    }
+    .shop-item-info {
+      text-align: left;
+    }
+    .shop-item-title {
+      font-size: 12px;
+      color: #fff;
+      font-weight: bold;
+    }
+    .shop-item-level {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 2px;
+    }
+    .btn-buy {
+      background: #4caf50;
+      color: #fff;
+      border: 2px solid #000;
+      padding: 8px 10px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: inherit;
+      border-radius: 4px;
+      box-shadow: 0 3px 0 #000;
+      font-size: 11px;
+    }
+    .btn-buy:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.6;
+      box-shadow: none;
+    }
+    .btn-buy:not(:disabled):active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #000;
+    }
+    .btn-main {
+      width: 100%;
+      padding: 12px;
+      background: #ffd700;
+      color: #000;
+      font-size: 15px;
+      font-weight: bold;
+      border: 3px solid #000;
+      cursor: pointer;
+      font-family: inherit;
+      border-radius: 6px;
+      box-shadow: 0 4px 0 #000;
+    }
+    .btn-main:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #000;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud-layer" class="ui-layer">
+      <div class="hud-top">
+        <div class="stats-panel">
+          <div>GÜN: <span id="hud-day">1</span> (<span id="hud-timer">45</span>s)</div>
+          <div style="margin-top: 3px; color: #ffd700;">ALTIN: <span id="hud-gold">0</span></div>
+          <div class="health-bar-container">
+            <div id="health-fill" class="health-bar-fill"></div>
+            <div id="health-text" class="health-text">100 / 100 HP</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+          <button id="btn-manual-reload" class="btn-ui" style="background:#ff9800; color:#fff;">ŞARJÖR (R)</button>
+          <button id="btn-menu" class="btn-ui" style="background:#4caf50; color:#fff;" onclick="openMenu()">MENÜ</button>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+        <div class="stats-panel" style="font-size: 15px; color: #00e676;">
+          MERMİ: <span id="hud-ammo">10</span> / <span id="hud-maxammo">10</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reload Progress Bar -->
+    <div id="reload-bar-container">
+      <div id="reload-bar-fill"></div>
+    </div>
+
+    <!-- ANA MENÜ MODALI -->
+    <div id="main-menu-modal" style="display: flex;">
+      <!-- Ortadaki Siyah Çizgi Ana Menü Ekrani Icinde Yer Alir -->
+      <div id="divider-line"></div>
+      
+      <div class="main-menu-box">
+        <div class="modal-title">PİKSEL ZOMBİ</div>
+        <button class="btn-menu-large" style="background: #2196f3;" onclick="btnYeniOyunClick()">YENİ OYUN</button>
+        <button class="btn-menu-large" style="background: #4caf50;" onclick="btnOynaClick()">OYNA</button>
+        <button class="btn-menu-large" style="background: #ff9800;" onclick="openSettings('main')">AYARLAR</button>
+      </div>
+    </div>
+
+    <!-- IN-GAME MENU MODAL (PAUSE MENÜSÜ) -->
+    <div id="menu-modal" class="overlay-modal" style="display: none;">
+      <div class="modal-box" style="border-color: #4caf50;">
+        <div class="modal-title" style="color: #4caf50;">OYUN MENÜSÜ</div>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+          <button class="btn-main" style="background: #ffd700; color: #000;" onclick="closeMenu()">DEVAM ET</button>
+          <button class="btn-main" style="background: #ff9800; color: #fff;" onclick="openSettings('pause')">AYARLAR</button>
+          <button class="btn-main" style="background: #f44336; color: #fff;" onclick="exitToMainMenu()">ÇIK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS MODAL (AYARLAR) -->
+    <div id="settings-modal" class="overlay-modal" style="display: none;">
+      <div class="modal-box" style="border-color: #ff9800;">
+        <div class="modal-title" style="color: #ff9800;">AYARLAR</div>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+          <button id="btn-sound-settings" class="btn-main" style="background: #333; color: #fff; border: 2px solid #fff;" onclick="toggleSound()">SES: AÇIK</button>
+          <button class="btn-main" style="background: #ffd700; color: #000;" onclick="closeSettings()">GERİ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MARKET MODAL -->
+    <div id="market-modal" class="overlay-modal" style="display: none;">
+      <div class="modal-box">
+        <div class="modal-title">MARKET & GELİŞTİRME</div>
+        <div style="color: #ffd700; font-size: 15px; font-weight: bold; margin-bottom: 8px;">
+          MEVCUT ALTIN: <span id="shop-gold">0</span>
+        </div>
+        
+        <div class="shop-grid">
+          <!-- Max HP -->
+          <div class="shop-item">
+            <div class="shop-item-info">
+              <div class="shop-item-title">Maksimum Can (+5)</div>
+              <div class="shop-item-level" id="lvl-hp">Seviye: 1 / 10</div>
+            </div>
+            <button id="buy-hp" class="btn-buy" onclick="buyUpgrade('hp')">250 ALTIN</button>
+          </div>
+
+          <!-- Mermi Hasari -->
+          <div class="shop-item">
+            <div class="shop-item-info">
+              <div class="shop-item-title">Mermi Hasarı (+5)</div>
+              <div class="shop-item-level" id="lvl-dmg">Seviye: 1 / 6</div>
+            </div>
+            <button id="buy-dmg" class="btn-buy" onclick="buyUpgrade('dmg')">250 ALTIN</button>
+          </div>
+
+          <!-- Sarjor Kapasitesi -->
+          <div class="shop-item">
+            <div class="shop-item-info">
+              <div class="shop-item-title">Şarjör Kapasitesi (+7)</div>
+              <div class="shop-item-level" id="lvl-mag">Seviye: 1 / 5</div>
+            </div>
+            <button id="buy-mag" class="btn-buy" onclick="buyUpgrade('mag')">250 ALTIN</button>
+          </div>
+
+          <!-- Para Kazanma -->
+          <div class="shop-item">
+            <div class="shop-item-info">
+              <div class="shop-item-title">Para Yükseltmesi (+5)</div>
+              <div class="shop-item-level" id="lvl-gold">Seviye: 1 / 5</div>
+            </div>
+            <button id="buy-gold" class="btn-buy" onclick="buyUpgrade('gold')">250 ALTIN</button>
+          </div>
+
+          <!-- Can Doldurma -->
+          <div class="shop-item">
+            <div class="shop-item-info">
+              <div class="shop-item-title">Can Yenileme Porsiyonu</div>
+              <div class="shop-item-level">Canını Tamamen Yeniler</div>
+            </div>
+            <button id="buy-heal" class="btn-buy" onclick="buyHeal()">100 ALTIN</button>
+          </div>
+        </div>
+
+        <button class="btn-main" onclick="startNextDay()">SONRAKİ GÜNE BAŞLA</button>
+      </div>
+    </div>
+
+    <!-- GAME OVER MODAL -->
+    <div id="death-modal" class="overlay-modal" style="display: none;">
+      <div class="modal-box" style="border-color: #f44336;">
+        <div class="modal-title" style="color: #f44336;">ÖLDÜNÜZ!</div>
+        <div id="death-summary" style="font-size: 16px; font-weight: bold; margin: 15px 0; color: #fff;">
+          KAÇINCI GÜNDE ÖLDÜN: 1
+        </div>
+        <button class="btn-main" onclick="restartGame()">TEKRAR DENE</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // --- AUDIO SYSTEM ---
+    let soundEnabled = true;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new AudioContext();
+    }
+
+    function playSound(type) {
+      if (!soundEnabled || !audioCtx) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'shoot') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(450, now);
+        osc.frequency.exponentialRampToValueAtTime(70, now + 0.1);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (type === 'hit') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.linearRampToValueAtTime(30, now + 0.08);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else if (type === 'coin') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.setValueAtTime(1200, now + 0.05);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === 'reload') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.setValueAtTime(500, now + 0.1);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      } else if (type === 'gameover') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.linearRampToValueAtTime(50, now + 0.5);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      }
+    }
+
+    function toggleSound() {
+      initAudio();
+      soundEnabled = !soundEnabled;
+      document.getElementById('btn-sound-settings').innerText = `SES: ${soundEnabled ? 'AÇIK' : 'KAPALI'}`;
+    }
+
+    const GAME_STATE = { MAIN_MENU: 0, PLAYING: 1, MARKET: 2, GAMEOVER: 3, PAUSED: 4 };
+    let currentState = GAME_STATE.MAIN_MENU;
+    let previousState = GAME_STATE.PLAYING;
+    let lastOpenedMenuFrom = 'main';
+    let maxDayTimer = 45; 
+
+    // BAŞLANGIÇ FİYATI 250 ALTIN
+    const UPGRADES = {
+      hp: { level: 1, maxLevel: 10, baseCost: 250 },
+      dmg: { level: 1, maxLevel: 6, baseCost: 250 },
+      mag: { level: 1, maxLevel: 5, baseCost: 250 },
+      gold: { level: 1, maxLevel: 5, baseCost: 250 }
+    };
+
+    let player = {
+      x: window.innerWidth * 0.75,
+      y: window.innerHeight / 2,
+      radius: 18,
+      hp: 100,
+      maxHp: 100,
+      gold: 0,
+      day: 1,
+      dayTimer: 45,
+      ammo: 10,
+      maxAmmo: 10,
+      isReloading: false,
+      angle: Math.PI * 0.85
+    };
+
+    let mouseX = window.innerWidth * 0.75, mouseY = window.innerHeight / 2;
+    let isTouching = false;
+    let lastShotTime = 0;
+    const FIRE_RATE = 160;
+
+    let zombies = [], bullets = [], particles = [], floatingTexts = [];
+    let spawnTimer = 0;
+    let reloadStartTime = 0;
+    const RELOAD_DURATION = 3000;
+
+    function getUpgradeCost(upgObj) {
+      return 250 + (upgObj.level - 1) * 100;
+    }
+
+    function saveGame() {
+      const data = {
+        day: player.day,
+        gold: player.gold,
+        upgrades: UPGRADES,
+        hp: player.hp
+      };
+      localStorage.setItem('zombie_game_save', JSON.stringify(data));
+    }
+
+    function loadGame() {
+      const saved = localStorage.getItem('zombie_game_save');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          player.day = data.day || 1;
+          player.gold = data.gold || 0;
+          maxDayTimer = 45;
+          player.dayTimer = maxDayTimer;
+          if (data.upgrades) {
+            UPGRADES.hp.level = data.upgrades.hp.level || 1;
+            UPGRADES.dmg.level = data.upgrades.dmg.level || 1;
+            UPGRADES.mag.level = data.upgrades.mag.level || 1;
+            UPGRADES.gold.level = data.upgrades.gold.level || 1;
+          }
+          recalculateStats();
+          player.hp = data.hp || player.maxHp;
+        } catch(e) {}
+      }
+    }
+
+    function resetGameStats() {
+      player.day = 1;
+      player.gold = 0;
+      maxDayTimer = 45;
+      UPGRADES.hp.level = 1;
+      UPGRADES.dmg.level = 1;
+      UPGRADES.mag.level = 1;
+      UPGRADES.gold.level = 1;
+      
+      recalculateStats();
+      player.hp = player.maxHp;
+      player.ammo = player.maxAmmo;
+      player.dayTimer = maxDayTimer;
+      player.isReloading = false;
+
+      zombies = [];
+      bullets = [];
+    }
+
+    function recalculateStats() {
+      player.maxHp = 100 + (UPGRADES.hp.level - 1) * 5;
+      player.maxAmmo = 10 + (UPGRADES.mag.level - 1) * 7;
+      if (player.ammo > player.maxAmmo) player.ammo = player.maxAmmo;
+    }
+
+    function getBulletDamage() {
+      return 10 + (UPGRADES.dmg.level - 1) * 5;
+    }
+
+    function getGoldPerKill() {
+      return 15 + (UPGRADES.gold.level - 1) * 5;
+    }
+
+    function btnOynaClick() {
+      initAudio();
+      loadGame();
+      zombies = []; // Ana menüdeki durağan zombileri temizle
+      document.getElementById('main-menu-modal').style.display = 'none';
+      document.getElementById('hud-layer').style.display = 'flex';
+      currentState = GAME_STATE.PLAYING;
+      updateHUD();
+    }
+
+    function btnYeniOyunClick() {
+      initAudio();
+      localStorage.removeItem('zombie_game_save');
+      resetGameStats();
+      zombies = []; // Ana menüdeki durağan zombileri temizle
+      document.getElementById('main-menu-modal').style.display = 'none';
+      document.getElementById('hud-layer').style.display = 'flex';
+      currentState = GAME_STATE.PLAYING;
+      updateHUD();
+    }
+
+    function openSettings(fromWhere) {
+      initAudio();
+      lastOpenedMenuFrom = fromWhere;
+      document.getElementById('main-menu-modal').style.display = 'none';
+      document.getElementById('menu-modal').style.display = 'none';
+      document.getElementById('settings-modal').style.display = 'flex';
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-modal').style.display = 'none';
+      if (lastOpenedMenuFrom === 'main') {
+        document.getElementById('main-menu-modal').style.display = 'flex';
+      } else {
+        document.getElementById('menu-modal').style.display = 'flex';
+      }
+    }
+
+    function openMenu() {
+      if (currentState === GAME_STATE.PAUSED || currentState === GAME_STATE.MAIN_MENU) return;
+      previousState = currentState;
+      currentState = GAME_STATE.PAUSED;
+      isTouching = false;
+      document.getElementById('menu-modal').style.display = 'flex';
+    }
+
+    function closeMenu() {
+      document.getElementById('menu-modal').style.display = 'none';
+      currentState = previousState;
+    }
+
+    function exitToMainMenu() {
+      saveGame();
+      document.getElementById('menu-modal').style.display = 'none';
+      document.getElementById('hud-layer').style.display = 'none';
+      document.getElementById('main-menu-modal').style.display = 'flex';
+      currentState = GAME_STATE.MAIN_MENU;
+      zombies = [];
+      bullets = [];
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      mouseY = e.clientY - rect.top;
+    });
+
+    window.addEventListener('mousedown', (e) => {
+      if (e.target.tagName === 'BUTTON' || e.target.closest('.overlay-modal') || e.target.closest('#main-menu-modal')) return;
+      initAudio();
+      if (currentState === GAME_STATE.PLAYING) isTouching = true;
+    });
+
+    window.addEventListener('mouseup', () => { isTouching = false; });
+
+    function handleTouch(e) {
+      if (e.touches && e.touches.length > 0) {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.touches[0].clientX - rect.left;
+        mouseY = e.touches[0].clientY - rect.top;
+      }
+    }
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.target.tagName === 'BUTTON' || e.target.closest('.overlay-modal') || e.target.closest('#main-menu-modal')) return;
+      initAudio();
+      handleTouch(e);
+      if (currentState === GAME_STATE.PLAYING) isTouching = true;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (e.target.tagName === 'BUTTON' || e.target.closest('.overlay-modal') || e.target.closest('#main-menu-modal')) return;
+      handleTouch(e);
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.touches.length === 0) isTouching = false;
+    });
+
+    window.addEventListener('touchcancel', () => { isTouching = false; });
+
+    window.addEventListener('keydown', (e) => {
+      if ((e.key === 'r' || e.key === 'R') && currentState === GAME_STATE.PLAYING) startReload();
+      if (e.key === 'Escape') {
+        if (currentState === GAME_STATE.PAUSED) closeMenu();
+        else if (currentState === GAME_STATE.PLAYING) openMenu();
+      }
+    });
+
+    document.getElementById('btn-manual-reload').addEventListener('click', (e) => {
+      e.stopPropagation();
+      startReload();
+    });
+
+    function shootBullet() {
+      if (player.isReloading) return;
+      if (player.ammo <= 0) {
+        startReload();
+        return;
+      }
+
+      player.ammo--;
+      updateHUD();
+      playSound('shoot');
+
+      const dx = mouseX - player.x;
+      const dy = mouseY - player.y;
+      const angle = Math.atan2(dy, dx);
+      const gunLen = 28;
+
+      bullets.push({
+        x: player.x + Math.cos(angle) * gunLen,
+        y: player.y + Math.sin(angle) * gunLen,
+        vx: Math.cos(angle) * 15,
+        vy: Math.sin(angle) * 15,
+        radius: 4,
+        damage: getBulletDamage()
+      });
+
+      createParticles(player.x + Math.cos(angle) * gunLen, player.y + Math.sin(angle) * gunLen, '#ffeb3b', 3);
+
+      if (player.ammo <= 0) startReload();
+    }
+
+    function startReload() {
+      if (player.isReloading || player.ammo === player.maxAmmo) return;
+      player.isReloading = true;
+      reloadStartTime = performance.now();
+      playSound('reload');
+
+      document.getElementById('reload-bar-container').style.display = 'block';
+    }
+
+    function updateReloadProgress(now) {
+      if (!player.isReloading) return;
+      const elapsed = now - reloadStartTime;
+      const pct = Math.min(100, (elapsed / RELOAD_DURATION) * 100);
+
+      document.getElementById('reload-bar-fill').style.width = pct + '%';
+      const reloadBar = document.getElementById('reload-bar-container');
+      reloadBar.style.left = (player.x - 50) + 'px';
+      reloadBar.style.top = (player.y - 42) + 'px';
+
+      if (elapsed >= RELOAD_DURATION) {
+        player.isReloading = false;
+        player.ammo = player.maxAmmo;
+        reloadBar.style.display = 'none';
+        updateHUD();
+      }
+    }
+
+    function getZombieStats() {
+      const day = player.day;
+      if (day <= 3) {
+        return {
+          speed: 1.25,
+          damage: 10,
+          hp: 30,
+          spawnInterval: day === 1 ? 220 : (day === 2 ? 180 : 150)
+        };
+      } else {
+        const extraDays = day - 3;
+        return {
+          speed: 1.25 + (extraDays * 0.08),
+          damage: 10 + (extraDays * 3),
+          hp: 30 + (extraDays * 5),
+          spawnInterval: Math.max(30, 140 - (extraDays * 12))
+        };
+      }
+    }
+
+    function spawnZombie() {
+      const stats = getZombieStats();
+      spawnTimer++;
+
+      if (spawnTimer >= stats.spawnInterval) {
+        spawnTimer = 0;
+
+        let x, y;
+        if (Math.random() < 0.5) {
+          x = Math.random() < 0.5 ? -30 : canvas.width + 30;
+          y = Math.random() * canvas.height;
+        } else {
+          x = Math.random() * canvas.width;
+          y = Math.random() < 0.5 ? -30 : canvas.height + 30;
+        }
+
+        zombies.push({
+          x: x,
+          y: y,
+          radius: 15,
+          hp: stats.hp,
+          maxHp: stats.hp,
+          speed: stats.speed,
+          damage: stats.damage,
+          attackTimer: 0
+        });
+      }
+    }
+
+    function update(now) {
+      if (currentState === GAME_STATE.MAIN_MENU) {
+        // Sağ tarafta sabit karakter ve dekoratif zombiler
+        player.x = canvas.width * 0.75;
+        player.y = canvas.height * 0.5;
+        player.angle = Math.PI * 0.85;
+
+        if (zombies.length === 0) {
+          zombies.push({ x: canvas.width * 0.60, y: canvas.height * 0.35, radius: 15, hp: 30, maxHp: 30, speed: 0 });
+          zombies.push({ x: canvas.width * 0.62, y: canvas.height * 0.65, radius: 15, hp: 30, maxHp: 30, speed: 0 });
+          zombies.push({ x: canvas.width * 0.88, y: canvas.height * 0.50, radius: 15, hp: 30, maxHp: 30, speed: 0 });
+        }
+        return;
+      }
+
+      if (currentState !== GAME_STATE.PLAYING) return;
+
+      player.x = canvas.width / 2;
+      player.y = canvas.height / 2;
+      player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+
+      if (isTouching) {
+        if (now - lastShotTime > FIRE_RATE) {
+          shootBullet();
+          lastShotTime = now;
+        }
+      }
+
+      updateReloadProgress(now);
+      spawnZombie();
+
+      player.dayTimer -= 1 / 60;
+      if (player.dayTimer <= 0) {
+        endDay();
+        return;
+      }
+      document.getElementById('hud-timer').innerText = Math.ceil(player.dayTimer);
+
+      for (let i = zombies.length - 1; i >= 0; i--) {
+        const z = zombies[i];
+        const dx = player.x - z.x;
+        const dy = player.y - z.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = player.radius + z.radius;
+
+        if (dist > minDist) {
+          z.x += (dx / dist) * z.speed;
+          z.y += (dy / dist) * z.speed;
+        } else {
+          z.x = player.x - (dx / dist) * minDist;
+          z.y = player.y - (dy / dist) * minDist;
+
+          z.attackTimer++;
+          if (z.attackTimer >= 40) {
+            z.attackTimer = 0;
+            player.hp -= z.damage;
+            playSound('hit');
+            createParticles(player.x, player.y, '#f44336', 6);
+
+            if (player.hp <= 0) {
+              player.hp = 0;
+              triggerGameOver();
+              return;
+            }
+            updateHUD();
+          }
+        }
+      }
+
+      for (let bIndex = bullets.length - 1; bIndex >= 0; bIndex--) {
+        const b = bullets[bIndex];
+        b.x += b.vx;
+        b.y += b.vy;
+
+        let bulletHit = false;
+
+        for (let zIndex = zombies.length - 1; zIndex >= 0; zIndex--) {
+          const z = zombies[zIndex];
+          const dist = Math.hypot(b.x - z.x, b.y - z.y);
+
+          if (dist < b.radius + z.radius) {
+            z.hp -= b.damage;
+            bulletHit = true;
+            playSound('hit');
+            createParticles(z.x, z.y, '#2e7d32', 6);
+
+            if (z.hp <= 0) {
+              const earnedGold = getGoldPerKill();
+              player.gold += earnedGold;
+              floatingTexts.push({
+                x: z.x,
+                y: z.y,
+                text: `+${earnedGold} Altın`,
+                color: '#ffd700',
+                life: 40
+              });
+              playSound('coin');
+              zombies.splice(zIndex, 1);
+              updateHUD();
+            }
+            break;
+          }
+        }
+
+        if (bulletHit || b.x < -20 || b.x > canvas.width + 20 || b.y < -20 || b.y > canvas.height + 20) {
+          bullets.splice(bIndex, 1);
+        }
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y -= 0.8;
+        ft.life--;
+        if (ft.life <= 0) floatingTexts.splice(i, 1);
+      }
+    }
+
+    function createParticles(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x, y: y,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          color: color, size: Math.random() * 3 + 2, life: 15
+        });
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#2b5e2d';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#234e25';
+      const tileSize = 60;
+      for (let x = 20; x < canvas.width; x += tileSize) {
+        for (let y = 20; y < canvas.height; y += tileSize) {
+          ctx.fillRect(x, y, 5, 10);
+          ctx.fillRect(x + 5, y + 5, 5, 5);
+        }
+      }
+
+      // ZOMBIES
+      zombies.forEach(z => {
+        ctx.save();
+        ctx.translate(z.x, z.y);
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(2, 5, z.radius + 2, z.radius - 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const zAngle = Math.atan2(player.y - z.y, player.x - z.x);
+        ctx.rotate(zAngle);
+
+        ctx.fillStyle = '#2e7d32';
+        ctx.fillRect(4, -12, 16, 5);
+        ctx.fillRect(4, 7, 16, 5);
+
+        ctx.fillStyle = '#b71c1c';
+        ctx.fillRect(18, -12, 4, 5);
+        ctx.fillRect(18, 7, 4, 5);
+
+        ctx.fillStyle = '#388e3c';
+        ctx.beginPath();
+        ctx.arc(0, 0, z.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#1b5e20';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#37474f';
+        ctx.fillRect(-10, -8, 8, 16);
+
+        ctx.fillStyle = '#800000';
+        ctx.beginPath();
+        ctx.arc(-2, 3, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ff1744';
+        ctx.beginPath();
+        ctx.arc(6, -5, 2.5, 0, Math.PI * 2);
+        ctx.arc(6, 5, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(7, -5, 1, 1);
+        ctx.fillRect(7, 5, 1, 1);
+
+        ctx.restore();
+      });
+
+      // BULLETS
+      bullets.forEach(b => {
+        ctx.fillStyle = '#ffeb3b';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#f57f17';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+
+      // PLAYER
+      ctx.save();
+      ctx.translate(player.x, player.y);
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.beginPath();
+      ctx.ellipse(2, 5, player.radius + 2, player.radius - 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.rotate(player.angle);
+
+      ctx.fillStyle = '#37474f';
+      ctx.fillRect(10, -3, 18, 6);
+      ctx.fillStyle = '#212121';
+      ctx.fillRect(12, -2, 14, 4);
+
+      ctx.fillStyle = '#1565c0';
+      ctx.beginPath();
+      ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#0d47a1';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffcc80';
+      ctx.beginPath();
+      ctx.arc(12, -8, 4, 0, Math.PI * 2);
+      ctx.arc(12, 8, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffcc80';
+      ctx.beginPath();
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#000';
+      ctx.fillRect(3, -4, 2, 3);
+      ctx.fillRect(3, 1, 2, 3);
+
+      ctx.restore();
+
+      // PARTICLES
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      });
+
+      // FLOATING TEXTS
+      floatingTexts.forEach(ft => {
+        ctx.fillStyle = ft.color;
+        ctx.font = 'bold 12px Courier New';
+        ctx.fillText(ft.text, ft.x, ft.y);
+      });
+    }
+
+    function updateHUD() {
+      document.getElementById('hud-day').innerText = player.day;
+      document.getElementById('hud-timer').innerText = Math.ceil(player.dayTimer);
+      document.getElementById('hud-gold').innerText = player.gold;
+      document.getElementById('hud-ammo').innerText = player.ammo;
+      document.getElementById('hud-maxammo').innerText = player.maxAmmo;
+
+      const hpPct = Math.max(0, (player.hp / player.maxHp) * 100);
+      const healthFill = document.getElementById('health-fill');
+      healthFill.style.width = hpPct + '%';
+      document.getElementById('health-text').innerText = `${Math.ceil(player.hp)} / ${player.maxHp} HP`;
+
+      if (hpPct > 50) healthFill.style.backgroundColor = '#4caf50';
+      else if (hpPct > 25) healthFill.style.backgroundColor = '#ff9800';
+      else healthFill.style.backgroundColor = '#f44336';
+    }
+
+    function endDay() {
+      currentState = GAME_STATE.MARKET;
+      isTouching = false;
+      zombies = [];
+      bullets = [];
+      saveGame();
+      openMarket();
+    }
+
+    function openMarket() {
+      document.getElementById('hud-layer').style.display = 'none';
+      document.getElementById('market-modal').style.display = 'flex';
+      updateMarketUI();
+    }
+
+    function updateMarketUI() {
+      document.getElementById('shop-gold').innerText = player.gold;
+
+      for (let key in UPGRADES) {
+        const upg = UPGRADES[key];
+        const cost = getUpgradeCost(upg);
+        const btn = document.getElementById(`buy-${key}`);
+        const lvlText = document.getElementById(`lvl-${key}`);
+
+        if (upg.level >= upg.maxLevel) {
+          lvlText.innerText = `Seviye: MAX (${upg.level})`;
+          btn.innerText = 'MAX';
+          btn.disabled = true;
+        } else {
+          lvlText.innerText = `Seviye: ${upg.level} / ${upg.maxLevel}`;
+          btn.innerText = `${cost} ALTIN`;
+          btn.disabled = player.gold < cost;
+        }
+      }
+
+      const buyHealBtn = document.getElementById('buy-heal');
+      buyHealBtn.disabled = player.gold < 100 || player.hp >= player.maxHp;
+    }
+
+    function buyUpgrade(type) {
+      const upg = UPGRADES[type];
+      const cost = getUpgradeCost(upg);
+      if (player.gold >= cost && upg.level < upg.maxLevel) {
+        player.gold -= cost;
+        upg.level++;
+        recalculateStats();
+        updateMarketUI();
+        playSound('coin');
+      }
+    }
+
+    function buyHeal() {
+      if (player.gold >= 100 && player.hp < player.maxHp) {
+        player.gold -= 100;
+        player.hp = player.maxHp;
+        updateMarketUI();
+        playSound('coin');
+      }
+    }
+
+    function startNextDay() {
+      player.day++;
+      maxDayTimer = 45;
+      player.dayTimer = maxDayTimer;
+      player.ammo = player.maxAmmo;
+      player.isReloading = false;
+      saveGame();
+
+      document.getElementById('market-modal').style.display = 'none';
+      document.getElementById('hud-layer').style.display = 'flex';
+      currentState = GAME_STATE.PLAYING;
+      updateHUD();
+    }
+
+    function triggerGameOver() {
+      currentState = GAME_STATE.GAMEOVER;
+      playSound('gameover');
+      document.getElementById('death-summary').innerText = `KAÇINCI GÜNDE ÖLDÜN: ${player.day}`;
+      document.getElementById('death-modal').style.display = 'flex';
+    }
+
+    function restartGame() {
+      document.getElementById('death-modal').style.display = 'none';
+      localStorage.removeItem('zombie_game_save');
+      resetGameStats();
+      document.getElementById('hud-layer').style.display = 'flex';
+      currentState = GAME_STATE.PLAYING;
+      updateHUD();
+    }
+
+    function gameLoop(now) {
+      update(now);
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    recalculateStats();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
